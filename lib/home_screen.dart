@@ -1,5 +1,5 @@
 import 'package:affinnes/screens/affine_transformations_screen.dart';
-import 'package:affinnes/screens/fill_screen.dart';
+import 'package:affinnes/screens/fill/fill_screen.dart';
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
