@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:affinnes/point.dart';
 import 'package:flutter/material.dart';
 
 class MyPainter extends CustomPainter {
@@ -94,11 +95,4 @@ class MyPainter extends CustomPainter {
   bool shouldRepaint(CustomPainter oldDelegate) {
     return false;
   }
-}
-
-class Point {
-  double x;
-  double y;
-
-  Point(this.x, this.y);
 }
