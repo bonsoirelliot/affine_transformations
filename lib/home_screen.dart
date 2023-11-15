@@ -27,10 +27,15 @@ class _HomeScreenState extends State<HomeScreen> {
             child: CustomPaint(
               painter: MyPainter(
                 originalPoints: [
-                  Point(0, 0),
-                  Point(50, 0),
-                  Point(50, 50),
-                  Point(0, 50),
+                  Point(0, 80),
+                  Point(0, 100),
+                  Point(80, 100),
+                  Point(80, 60),
+                  Point(100, 60),
+                  Point(70, 20),
+                  Point(40, 60),
+                  Point(60, 60),
+                  Point(60, 80),
                 ],
                 rotationAngle: rotationAngle,
                 translationX: translationX,

@@ -29,7 +29,7 @@ class MyPainter extends CustomPainter {
 
     //* Параметры рисования
     Paint paint = Paint()
-      ..color = Colors.blue
+      ..color = Colors.black
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
@@ -74,14 +74,19 @@ class MyPainter extends CustomPainter {
     double cosA = math.cos(angle);
     double sinA = math.sin(angle);
 
-    for (int i = 1; i < points.length; i++) {
-      double x = points[i].x;
-      double y = points[i].y;
+    final rotationPoint = Point(0, 100);
 
+    for (int i = 0; i < points.length; i++) {
+      //* Перенос в начало координат
+      double x = points[i].x - rotationPoint.x;
+      double y = points[i].y - rotationPoint.y;
+
+      //* Поворот
       double xPrime = x * cosA - y * sinA;
       double yPrime = x * sinA + y * cosA;
 
-      points[i] = Point(xPrime, yPrime);
+      //* Возврат в исходную систему
+      points[i] = Point(xPrime + rotationPoint.x, yPrime + rotationPoint.y);
     }
   }
 
