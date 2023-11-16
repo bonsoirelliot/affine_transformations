@@ -1,11 +1,8 @@
-import 'dart:collection';
-
-import 'package:affinnes/point.dart';
+import 'package:affinnes/screens/fill/filler.dart';
 import 'package:affinnes/screens/fill/image_generator.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-
-import 'package:image/image.dart' as img;
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 class FillScreen extends StatefulWidget {
   const FillScreen({super.key});
@@ -15,6 +12,11 @@ class FillScreen extends StatefulWidget {
 }
 
 class _FillScreenState extends State<FillScreen> {
+  int selectedAlgorytm = 0;
+  Color currentColor = Colors.white;
+  Color pickerColor = Colors.white;
+  final filler = Filler();
+  Uint8List? _initialImage;
   Uint8List? image;
 
   @override
@@ -23,77 +25,40 @@ class _FillScreenState extends State<FillScreen> {
     init();
   }
 
-  Future<void> fillImage(
-      Uint8List imageData, int startX, int startY, Color fillColor) async {
-    img.Image _image = img.decodeImage(imageData.buffer.asUint8List())!;
-
-    // Получение цвета затравочного пикселя
-    int targetColor = _image.getPixel(startX, startY);
-
-    // Создание очереди для алгоритма заливки
-    Queue<Point> queue = Queue();
-    queue.add(Point(startX.toDouble(), startY.toDouble()));
-
-    // Пока очередь не пуста, продолжаем алгоритм заливки
-    while (queue.isNotEmpty) {
-      Point currentPoint = queue.removeFirst();
-
-      // Проверка, не выходим ли за границы изображения
-      if (currentPoint.x >= 0 &&
-          currentPoint.x < _image.width &&
-          currentPoint.y >= 0 &&
-          currentPoint.y < _image.height) {
-        // Проверка, является ли текущий пиксель цветом затравки
-        if (_image.getPixelSafe(currentPoint.x.toInt(), currentPoint.y.toInt()) ==
-            targetColor) {
-          // debugPrint('color: ${fillColor.value}');
-
-          // Закрасить текущий пиксель новым цветом
-          _image.setPixelRgba(
-            currentPoint.x.toInt(),
-            currentPoint.y.toInt(),
-            fillColor.red,
-            fillColor.green,
-            fillColor.blue,
-          );
-
-          // Добавить соседние пиксели в очередь для обработки
-          queue.add(Point(currentPoint.x + 1, currentPoint.y));
-          queue.add(Point(currentPoint.x - 1, currentPoint.y));
-          queue.add(Point(currentPoint.x, currentPoint.y + 1));
-          queue.add(Point(currentPoint.x, currentPoint.y - 1));
-        }
-      }
-    }
-
-    // Сохранение измененного изображения
-    final ByteData modifiedByteData =
-        ByteData.sublistView(Uint8List.fromList(img.encodePng(_image)));
-
-    // final codec =
-    //     await ui.instantiateImageCodec(modifiedByteData.buffer.asUint8List());
-    // final frameInfo = await codec.getNextFrame();
-    // final modifiedImage = frameInfo.image;
-
-    setState(() {
-      image = modifiedByteData.buffer.asUint8List();
-    });
-  }
-
   Future<void> init() async {
     final data = await generateImage();
 
     setState(() {
-      image = data!.buffer.asUint8List();
+      _initialImage = data!.buffer.asUint8List();
+      image = _initialImage;
     });
+  }
 
+  void fillEmpty() {
+    setState(() {
+      image = _initialImage;
+    });
+  }
+
+  void fillImage() async {
     if (image != null) {
-      await fillImage(
-        image!,
-        50,
-        50,
-        Colors.green,
-      );
+      final _image = selectedAlgorytm == 0
+          ? await filler.floodFillImage(
+              _initialImage!,
+              10,
+              90,
+              currentColor,
+            )
+          : await filler.rowFillImage(
+              _initialImage!,
+              10,
+              90,
+              currentColor,
+            );
+
+      setState(() {
+        image = _image;
+      });
     }
   }
 
@@ -104,10 +69,150 @@ class _FillScreenState extends State<FillScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (image != null) Image.memory(image!),
+            if (image != null)
+              Image.memory(image!)
+            else
+              const SizedBox(
+                height: 500,
+                width: 500,
+              ),
+            Row(
+              children: [
+                _AlgorytmSelect(
+                  groupValue: selectedAlgorytm,
+                  onChanged: (val) {
+                    setState(() {
+                      selectedAlgorytm = val!;
+                    });
+                  },
+                ),
+                _ColorSelect(
+                  fillColor: currentColor,
+                  onColorChanged: (_) {
+                    setState(() {
+                      pickerColor = _;
+                    });
+                  },
+                  onColorSelect: () {
+                    setState(() {
+                      currentColor = pickerColor;
+                    });
+                  },
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                FilledButton(
+                  onPressed: fillImage,
+                  child: const Text(
+                    'Выполнить заливку',
+                  ),
+                ),
+                const SizedBox(
+                  width: 8,
+                ),
+                FilledButton(
+                  onPressed: fillEmpty,
+                  child: const Text(
+                    'Убрать заливку',
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AlgorytmSelect extends StatelessWidget {
+  const _AlgorytmSelect({
+    required this.groupValue,
+    this.onChanged,
+    super.key,
+  });
+
+  final int groupValue;
+
+  final void Function(int?)? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Выбранный алгоритм заливки:'),
+        RadioMenuButton<int>(
+          value: 0,
+          groupValue: groupValue,
+          onChanged: onChanged,
+          child: const Text('С затравкой'),
+        ),
+        RadioMenuButton<int>(
+          value: 1,
+          groupValue: groupValue,
+          onChanged: onChanged,
+          child: const Text('Построчное сканирование'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ColorSelect extends StatelessWidget {
+  const _ColorSelect({
+    required this.fillColor,
+    required this.onColorChanged,
+    required this.onColorSelect,
+    super.key,
+  });
+
+  final Color fillColor;
+
+  final void Function(Color) onColorChanged;
+
+  final VoidCallback onColorSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Text('Выбранный цвет:'),
+        GestureDetector(
+          onTap: () {
+            showDialog(
+              context: context,
+              builder: (_) {
+                return AlertDialog(
+                  title: const Text('Pick a color!'),
+                  content: SingleChildScrollView(
+                    child: ColorPicker(
+                      pickerColor: fillColor,
+                      onColorChanged: onColorChanged,
+                    ),
+                  ),
+                  actions: <Widget>[
+                    ElevatedButton(
+                      child: const Text('Выбрать'),
+                      onPressed: () {
+                        onColorSelect.call();
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+          child: Container(
+            height: 30,
+            width: 30,
+            color: fillColor,
+          ),
+        ),
+      ],
     );
   }
 }
